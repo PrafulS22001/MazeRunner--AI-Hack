@@ -35,7 +35,7 @@ public class HealthSystem : MonoBehaviour
     {
         currentHealth = maxHealth;
         spriteRenderer = GetComponent<SpriteRenderer>();
-        gameManager = FindObjectOfType<GameManager>();
+        gameManager = FindFirstObjectByType<GameManager>();
         
         // Setup UI
         if (healthBar != null)
@@ -126,14 +126,14 @@ public class HealthSystem : MonoBehaviour
         }
         
         // Stop camera following
-        CameraFollow cameraFollow = FindObjectOfType<CameraFollow>();
+        CameraFollow cameraFollow = FindFirstObjectByType<CameraFollow>();
         if (cameraFollow != null)
         {
             cameraFollow.enabled = false;
         }
         
         // Show game over screen through BeautifulMenuSystem
-        BeautifulMenuSystem menuSystem = FindObjectOfType<BeautifulMenuSystem>();
+        BeautifulMenuSystem menuSystem = FindFirstObjectByType<BeautifulMenuSystem>();
         if (menuSystem != null && gameManager != null)
         {
             menuSystem.ShowGameOver(gameManager.GetScore(), gameManager.GetGameTime());
@@ -208,3 +208,4 @@ public class HealthSystem : MonoBehaviour
         return (float)currentHealth / maxHealth;
     }
 }
+

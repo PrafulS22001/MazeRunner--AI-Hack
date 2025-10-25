@@ -12,7 +12,7 @@ public class ExitTrigger : MonoBehaviour
     
     void Start()
     {
-        gameManager = FindObjectOfType<GameManager>();
+        gameManager = FindFirstObjectByType<GameManager>();
         spriteRenderer = GetComponent<SpriteRenderer>();
         
         // Setup visual
@@ -35,7 +35,10 @@ public class ExitTrigger : MonoBehaviour
         if (other.CompareTag("Player") && !playerReachedExit)
         {
             playerReachedExit = true;
-            Debug.Log("Player reached the exit!");
+            Debug.Log("🎉 Player reached the exit!");
+            
+            // Show victory screen!
+            VictoryScreen.TriggerVictory();
             
             // Notify game manager
             if (gameManager != null)
@@ -71,3 +74,4 @@ public class ExitTrigger : MonoBehaviour
         Debug.Log("Exit sequence completed!");
     }
 }
+

@@ -11,8 +11,12 @@ public class MazeValidator : MonoBehaviour
     
     void Start()
     {
-        mazeGen = FindObjectOfType<MazeGenerator>();
-        Invoke("ValidateMaze", 2f); // Validate after maze generates
+        mazeGen = FindFirstObjectByType<MazeGenerator>();
+        
+        // Validate multiple times to ensure path exists
+        Invoke("ValidateMaze", 2f);  // First check
+        Invoke("ValidateMaze", 4f);  // Second check (in case of timing issues)
+        Invoke("ValidateMaze", 6f);  // Third check for safety
     }
     
     void Update()
@@ -32,6 +36,13 @@ public class MazeValidator : MonoBehaviour
             return;
         }
         
+        // Check if maze grid is properly initialized
+        if (mazeGen.mazeWidth <= 0 || mazeGen.mazeHeight <= 0)
+        {
+            Debug.LogWarning("⚠️ Cannot validate maze - Invalid maze dimensions");
+            return;
+        }
+        
         Debug.Log("🔍 Validating maze connectivity...");
         
         // Find glade center
@@ -39,15 +50,31 @@ public class MazeValidator : MonoBehaviour
         int gladeCenterY = mazeGen.mazeHeight / 2;
         
         // Find exit position
-        ExitTrigger exit = FindObjectOfType<ExitTrigger>();
+        ExitTrigger exit = FindFirstObjectByType<ExitTrigger>();
         if (exit == null)
         {
-            Debug.LogWarning("⚠️ No exit found in maze");
+            Debug.LogWarning("⚠️ No exit found in maze - skipping validation");
             return;
         }
         
         Vector3 exitWorldPos = exit.transform.position;
         Vector2Int exitGridPos = WorldToGrid(exitWorldPos);
+        
+        Debug.Log($"📍 Exit found at world: {exitWorldPos} → grid: ({exitGridPos.x}, {exitGridPos.y})");
+        Debug.Log($"📍 Glade center at grid: ({gladeCenterX}, {gladeCenterY})");
+        
+        // Validate coordinates before checking path
+        if (!IsValidPosition(gladeCenterX, gladeCenterY))
+        {
+            Debug.LogWarning($"⚠️ Glade center out of bounds: ({gladeCenterX}, {gladeCenterY})");
+            return;
+        }
+        
+        if (!IsValidPosition(exitGridPos.x, exitGridPos.y))
+        {
+            Debug.LogWarning($"⚠️ Exit position out of bounds: ({exitGridPos.x}, {exitGridPos.y})");
+            return;
+        }
         
         // Check if path exists from glade to exit
         bool pathExists = HasPath(gladeCenterX, gladeCenterY, exitGridPos.x, exitGridPos.y);
@@ -55,16 +82,29 @@ public class MazeValidator : MonoBehaviour
         if (pathExists)
         {
             Debug.Log("✅ Maze is valid - Path exists from glade to exit!");
+            Debug.Log($"   🎯 Exit is at {exit.transform.position}");
+            Debug.Log($"   🗺️ Exit grid: ({exitGridPos.x}, {exitGridPos.y})");
         }
         else
         {
             Debug.LogWarning("❌ MAZE HAS NO PATH! Creating emergency path...");
+            Debug.LogWarning($"   📍 From: Glade ({gladeCenterX}, {gladeCenterY}) → Exit ({exitGridPos.x}, {exitGridPos.y})");
             CreateEmergencyPath(gladeCenterX, gladeCenterY, exitGridPos.x, exitGridPos.y);
+            
+            // Verify the emergency path worked
+            Invoke("VerifyEmergencyPath", 1f);
         }
     }
     
     bool HasPath(int startX, int startY, int endX, int endY)
     {
+        // Validate coordinates are within bounds
+        if (!IsValidPosition(startX, startY) || !IsValidPosition(endX, endY))
+        {
+            Debug.LogWarning($"⚠️ Path coordinates out of bounds: Start({startX},{startY}) End({endX},{endY})");
+            return false;
+        }
+        
         if (mazeGen.mazeGrid[startX, startY] == 1 || mazeGen.mazeGrid[endX, endY] == 1)
         {
             return false; // Start or end is in wall
@@ -149,14 +189,22 @@ public class MazeValidator : MonoBehaviour
     {
         Vector2 worldPos = GridToWorld(gridX, gridY);
         
-        // Find and destroy any wall at this position
-        GameObject[] walls = GameObject.FindGameObjectsWithTag("Wall");
-        foreach (GameObject wall in walls)
+        try
         {
-            if (Vector2.Distance(wall.transform.position, worldPos) < 0.5f)
+            // Find and destroy any wall at this position
+            GameObject[] walls = GameObject.FindGameObjectsWithTag("Wall");
+            foreach (GameObject wall in walls)
             {
-                Destroy(wall);
+                if (wall != null && Vector2.Distance(wall.transform.position, worldPos) < 0.5f)
+                {
+                    Destroy(wall);
+                }
             }
+        }
+        catch (UnityException)
+        {
+            // Wall tag doesn't exist, that's okay
+            Debug.LogWarning("⚠️ Wall tag not defined - cannot remove walls");
         }
     }
     
@@ -169,6 +217,11 @@ public class MazeValidator : MonoBehaviour
     {
         int gridX = Mathf.RoundToInt(worldPos.x / mazeGen.cellSize + mazeGen.mazeWidth / 2f);
         int gridY = Mathf.RoundToInt(worldPos.y / mazeGen.cellSize + mazeGen.mazeHeight / 2f);
+        
+        // Clamp to valid grid bounds
+        gridX = Mathf.Clamp(gridX, 0, mazeGen.mazeWidth - 1);
+        gridY = Mathf.Clamp(gridY, 0, mazeGen.mazeHeight - 1);
+        
         return new Vector2Int(gridX, gridY);
     }
     
@@ -193,12 +246,47 @@ public class MazeValidator : MonoBehaviour
         int gladeCenterX = mazeGen.mazeWidth / 2;
         int gladeCenterY = mazeGen.mazeHeight / 2;
         
-        ExitTrigger exit = FindObjectOfType<ExitTrigger>();
+        ExitTrigger exit = FindFirstObjectByType<ExitTrigger>();
         if (exit != null)
         {
             Vector2Int exitPos = WorldToGrid(exit.transform.position);
             CreateEmergencyPath(gladeCenterX, gladeCenterY, exitPos.x, exitPos.y);
         }
     }
+    
+    void VerifyEmergencyPath()
+    {
+        Debug.Log("🔍 Verifying emergency path was created...");
+        
+        ExitTrigger exit = FindFirstObjectByType<ExitTrigger>();
+        if (exit == null) return;
+        
+        int gladeCenterX = mazeGen.mazeWidth / 2;
+        int gladeCenterY = mazeGen.mazeHeight / 2;
+        Vector2Int exitGridPos = WorldToGrid(exit.transform.position);
+        
+        bool pathExists = HasPath(gladeCenterX, gladeCenterY, exitGridPos.x, exitGridPos.y);
+        
+        if (pathExists)
+        {
+            Debug.Log("✅ Emergency path VERIFIED - Exit is now reachable!");
+        }
+        else
+        {
+            Debug.LogError("❌ CRITICAL: Emergency path failed! Creating wider path...");
+            CreateWiderEmergencyPath(gladeCenterX, gladeCenterY, exitGridPos.x, exitGridPos.y);
+        }
+    }
+    
+    void CreateWiderEmergencyPath(int startX, int startY, int endX, int endY)
+    {
+        // Create a 3-cell wide path to ensure accessibility
+        CreateEmergencyPath(startX, startY, endX, endY);
+        CreateEmergencyPath(startX + 1, startY, endX, endY);
+        CreateEmergencyPath(startX, startY + 1, endX, endY);
+        
+        Debug.Log("✅ Created wider emergency path (3 cells wide)");
+    }
 }
+
 

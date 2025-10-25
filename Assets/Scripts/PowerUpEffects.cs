@@ -9,15 +9,15 @@ public class PowerUpEffects : MonoBehaviour
 {
     [Header("Idle Animations")]
     public bool floatAnimation = true;
-    public float floatSpeed = 1f;
-    public float floatHeight = 0.3f;
+    public float floatSpeed = 2f; // Faster floating
+    public float floatHeight = 0.5f; // Higher bounce
     
     public bool rotateAnimation = true;
-    public float rotateSpeed = 90f;
+    public float rotateSpeed = 180f; // Faster rotation
     
     public bool pulseAnimation = true;
-    public float pulseSpeed = 2f;
-    public float pulseAmount = 0.15f;
+    public float pulseSpeed = 3f; // Faster pulse
+    public float pulseAmount = 0.25f; // Bigger pulse
     
     [Header("Collection Effects")]
     public bool spawnParticles = true;
@@ -33,7 +33,9 @@ public class PowerUpEffects : MonoBehaviour
     void Start()
     {
         startPosition = transform.position;
-        originalScale = transform.localScale;
+        originalScale = transform.localScale * 1.2f; // Make them bigger!
+        transform.localScale = originalScale;
+        
         spriteRenderer = GetComponent<SpriteRenderer>();
         powerUp = GetComponent<PowerUp>();
         
@@ -47,11 +49,47 @@ public class PowerUpEffects : MonoBehaviour
         // Set color based on power-up type
         SetColorByType();
         
-        // Make it glow
-        spriteRenderer.material = new Material(Shader.Find("Sprites/Default"));
+        // Add glow effect
+        CreateGlowEffect();
         
         // Start animations
         StartCoroutine(AnimatePowerUp());
+    }
+    
+    void CreateGlowEffect()
+    {
+        // Create glow child object
+        GameObject glow = new GameObject("Glow");
+        glow.transform.SetParent(transform);
+        glow.transform.localPosition = Vector3.zero;
+        glow.transform.localScale = Vector3.one * 1.5f;
+        
+        SpriteRenderer glowSR = glow.AddComponent<SpriteRenderer>();
+        glowSR.sprite = CreatePowerUpSprite();
+        glowSR.color = new Color(spriteRenderer.color.r, spriteRenderer.color.g, spriteRenderer.color.b, 0.3f);
+        glowSR.sortingOrder = spriteRenderer.sortingOrder - 1;
+        
+        // Animate glow
+        StartCoroutine(AnimateGlow(glowSR));
+    }
+    
+    System.Collections.IEnumerator AnimateGlow(SpriteRenderer glowSR)
+    {
+        float time = 0f;
+        
+        while (!isCollected && glowSR != null)
+        {
+            time += Time.deltaTime * 2f;
+            
+            float pulse = 0.3f + Mathf.Sin(time) * 0.2f;
+            Color c = glowSR.color;
+            c.a = pulse;
+            glowSR.color = c;
+            
+            glowSR.transform.localScale = Vector3.one * (1.5f + Mathf.Sin(time) * 0.2f);
+            
+            yield return null;
+        }
     }
     
     void SetColorByType()
@@ -63,23 +101,27 @@ public class PowerUpEffects : MonoBehaviour
         switch (powerUp.type)
         {
             case PowerUp.PowerUpType.HealthPack:
-                color = new Color(0.2f, 1f, 0.3f); // Green
+                color = new Color(0.2f, 1f, 0.3f); // Bright Green
                 break;
             case PowerUp.PowerUpType.SpeedBoost:
-                color = new Color(1f, 1f, 0.2f); // Yellow
+                color = new Color(1f, 0.9f, 0.2f); // Bright Yellow
                 break;
             case PowerUp.PowerUpType.Invisibility:
-                color = new Color(0.3f, 0.8f, 1f); // Cyan
+                color = new Color(0.3f, 1f, 1f); // Bright Cyan
                 break;
             case PowerUp.PowerUpType.SpiderRepellent:
-                color = new Color(1f, 0.3f, 0.3f); // Red
+                color = new Color(1f, 0.2f, 0.2f); // Bright Red
                 break;
             case PowerUp.PowerUpType.ScoreMultiplier:
-                color = new Color(1f, 0.4f, 1f); // Magenta
+                color = new Color(1f, 0.3f, 1f); // Bright Magenta
                 break;
         }
         
         spriteRenderer.color = color;
+        
+        // Make power-ups GLOW (increase brightness)
+        spriteRenderer.material = new Material(Shader.Find("Sprites/Default"));
+        spriteRenderer.sortingOrder = 15; // Above most things
     }
     
     IEnumerator AnimatePowerUp()
@@ -246,13 +288,7 @@ public class PowerUpEffects : MonoBehaviour
     
     void PlayCollectionSound()
     {
-        // Play different sound based on type
-        AudioManager audioManager = AudioManager.Instance;
-        if (audioManager != null)
-        {
-            // audioManager.PlaySFX("PowerUpCollect");
-        }
-        
+        // Audio system removed - sound effects can be added later if needed
         Debug.Log($"🎵 Power-up collected sound: {powerUp?.type}");
     }
     

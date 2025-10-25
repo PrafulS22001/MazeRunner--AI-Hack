@@ -41,14 +41,26 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         // Find components
-        playerHealth = FindObjectOfType<HealthSystem>();
-        mazeGenerator = FindObjectOfType<MazeGenerator>();
+        playerHealth = FindFirstObjectByType<HealthSystem>();
+        mazeGenerator = FindFirstObjectByType<MazeGenerator>();
         
         // Setup UI
         SetupUI();
         
-        // Start game
-        StartGame();
+        // Check if GameInitializer exists
+        GameInitializer gameInit = GameInitializer.Instance;
+        
+        if (gameInit != null && !gameInit.IsGameStarted())
+        {
+            // Game hasn't started yet (menu mode), don't start game yet
+            Debug.Log("GameManager waiting for game to start...");
+            gameStarted = false;
+        }
+        else
+        {
+            // No GameInitializer or game already started
+            StartGame();
+        }
         
         Debug.Log("GameManager initialized");
     }
@@ -96,7 +108,7 @@ public class GameManager : MonoBehaviour
         UpdateUI();
     }
     
-    void StartGame()
+    public void StartGame()
     {
         gameStarted = true;
         gameTime = 0f;
@@ -105,6 +117,12 @@ public class GameManager : MonoBehaviour
         
         UpdateUI();
         Debug.Log("Game started!");
+    }
+    
+    // Called by GameInitializer when game actually starts
+    public void OnGameStarted()
+    {
+        StartGame();
     }
     
     void UpdateGameTime()
@@ -273,3 +291,4 @@ public class GameManager : MonoBehaviour
         return gameStarted;
     }
 }
+

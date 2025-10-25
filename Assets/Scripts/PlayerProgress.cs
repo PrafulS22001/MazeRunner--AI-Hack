@@ -37,7 +37,7 @@ public class PlayerProgress : MonoBehaviour
         {
             if (instance == null)
             {
-                instance = FindObjectOfType<PlayerProgress>();
+                instance = FindFirstObjectByType<PlayerProgress>();
                 if (instance == null)
                 {
                     GameObject progressManager = new GameObject("PlayerProgress");
@@ -132,7 +132,7 @@ public class PlayerProgress : MonoBehaviour
         }
         
         // Record level score and time
-        GameManager gameManager = FindObjectOfType<GameManager>();
+        GameManager gameManager = FindFirstObjectByType<GameManager>();
         if (gameManager != null)
         {
             // Ensure we have enough entries in the lists
@@ -268,13 +268,10 @@ public class PlayerProgress : MonoBehaviour
     
     public float GetCompletionPercentage()
     {
-        LevelManager levelManager = FindObjectOfType<LevelManager>();
-        if (levelManager != null)
-        {
-            int totalLevels = levelManager.GetTotalLevels();
-            return (float)progressData.highestLevelCompleted / totalLevels;
-        }
-        return 0f;
+        // Simple completion percentage based on highest level
+        // Assuming 10 levels for now (can be adjusted)
+        int totalLevels = 10;
+        return (float)progressData.highestLevelCompleted / totalLevels;
     }
     
     void OnApplicationPause(bool pauseStatus)
@@ -298,3 +295,4 @@ public class PlayerProgress : MonoBehaviour
         SaveProgress();
     }
 }
+

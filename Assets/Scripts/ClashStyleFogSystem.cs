@@ -45,32 +45,105 @@ public class ClashStyleFogSystem : MonoBehaviour
     void Start()
     {
         player = GameObject.FindGameObjectWithTag("Player")?.transform;
-        mazeGenerator = FindObjectOfType<MazeGenerator>();
+        mazeGenerator = FindFirstObjectByType<MazeGenerator>();
         mainCamera = Camera.main;
+        
+        Debug.Log($"🌫 ClashStyleFogSystem initialized! EnableFog: {enableFog}");
+        
+        // Check if GameInitializer exists and game has started
+        GameInitializer gameInit = GameInitializer.Instance;
         
         if (enableFog)
         {
-            Invoke("CreateFogSystem", 1f); // Wait for maze generation
+            if (gameInit != null && gameInit.IsGameStarted())
+            {
+                // Game already started, create fog soon
+                Debug.Log("   📍 Game started - creating fog in 1 second");
+                Invoke("CreateFogSystem", 1f);
+            }
+            else if (gameInit != null)
+            {
+                // Game not started yet (menu mode), wait for game to start
+                Debug.Log("   📍 Menu mode - creating fog in 2 seconds");
+                Invoke("CreateFogSystem", 2f);
+            }
+            else
+            {
+                // No GameInitializer, create fog soon
+                Debug.Log("   📍 No GameInitializer - creating fog in 1.5 seconds");
+                Invoke("CreateFogSystem", 1.5f);
+            }
+        }
+        else
+        {
+            Debug.LogWarning("   ⚠️ Fog is disabled (enableFog = false)");
+        }
+    }
+    
+    // Method to force fog creation (can be called externally)
+    public void ForceCreateFog()
+    {
+        if (enableFog && fogLayer == null)
+        {
+            CreateFogSystem();
         }
     }
     
     void CreateFogSystem()
     {
+        Debug.Log("🌫 CreateFogSystem called...");
+        
+        // Don't create fog if it already exists
+        if (fogLayer != null)
+        {
+            Debug.LogWarning("   ⚠️ Fog layer already exists!");
+            return;
+        }
+        
+        // Wait for player to exist
+        if (player == null)
+        {
+            player = GameObject.FindGameObjectWithTag("Player")?.transform;
+            if (player == null)
+            {
+                Debug.LogWarning("   ⚠️ Player not found yet, retrying in 0.5s...");
+                Invoke("CreateFogSystem", 0.5f);
+                return;
+            }
+        }
+        
+        // Refresh maze generator reference
+        if (mazeGenerator == null)
+        {
+            mazeGenerator = FindFirstObjectByType<MazeGenerator>();
+        }
+        
         // Create fog layer
+        Debug.Log("   📦 Creating fog layer GameObject...");
         fogLayer = new GameObject("ClashStyleFogLayer");
         fogLayer.transform.position = Vector3.zero;
         
         if (mazeGenerator == null)
         {
-            Debug.LogWarning("MazeGenerator not found! Creating fog over camera view.");
+            Debug.LogWarning("   ⚠️ MazeGenerator not found! Creating fog over camera view.");
             CreateFogOverCameraView();
         }
         else
         {
+            Debug.Log("   📍 Creating fog over maze...");
             CreateFogOverMaze();
         }
         
-        Debug.Log($"✅ Clash-style fog created! {fogClouds.Count} clouds");
+        if (fogClouds.Count > 0)
+        {
+            Debug.Log($"✅ Clash-style fog created! {fogClouds.Count} clouds");
+            Debug.Log($"   🎨 Fog color: {fogColor}");
+            Debug.Log($"   ☁️ Cloud size: {cloudSize}");
+        }
+        else
+        {
+            Debug.LogError("❌ No fog clouds were created!");
+        }
     }
     
     void CreateFogOverMaze()
@@ -152,8 +225,11 @@ public class ClashStyleFogSystem : MonoBehaviour
         SpriteRenderer sr = cloudGO.AddComponent<SpriteRenderer>();
         sr.sprite = CreateCloudSprite();
         sr.color = fogColor;
-        sr.sortingLayerName = "UI"; // Create UI layer if doesn't exist
-        sr.sortingOrder = 1000; // Way above everything!
+        
+        // Use Default sorting layer with high order (above walls/player)
+        // This ensures fog appears even if custom sorting layers don't exist
+        sr.sortingLayerName = "Default";
+        sr.sortingOrder = 100; // Above walls (0), player (10), but below UI
         
         // Create fog cloud data
         FogCloud cloud = new FogCloud
@@ -384,4 +460,6 @@ public class ClashStyleFogSystem : MonoBehaviour
         ResetFog();
     }
 }
+
+
 

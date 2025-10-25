@@ -110,7 +110,7 @@ public class PowerUp : MonoBehaviour
         }
         
         // Award points
-        GameManager gameManager = FindObjectOfType<GameManager>();
+        GameManager gameManager = FindFirstObjectByType<GameManager>();
         if (gameManager != null)
         {
             gameManager.AddScore(100); // Base points for collecting power-up
@@ -146,7 +146,7 @@ public class PowerUp : MonoBehaviour
                 break;
                 
             case PowerUpType.ScoreMultiplier:
-                GameManager gameManager = FindObjectOfType<GameManager>();
+                GameManager gameManager = FindFirstObjectByType<GameManager>();
                 if (gameManager != null)
                 {
                     StartCoroutine(ScoreMultiplierEffect(gameManager));
@@ -177,7 +177,7 @@ public class PowerUp : MonoBehaviour
             renderer.color = new Color(originalColor.r, originalColor.g, originalColor.b, 0.3f);
             
             // Make spiders ignore player
-            SpiderAI[] spiders = FindObjectsOfType<SpiderAI>();
+            SpiderAI[] spiders = FindObjectsByType<SpiderAI>(FindObjectsSortMode.None);
             foreach (SpiderAI spider in spiders)
             {
                 spider.SetIgnorePlayer(true);
@@ -202,7 +202,7 @@ public class PowerUp : MonoBehaviour
     
     System.Collections.IEnumerator SpiderRepellentEffect()
     {
-        SpiderAI[] spiders = FindObjectsOfType<SpiderAI>();
+        SpiderAI[] spiders = FindObjectsByType<SpiderAI>(FindObjectsSortMode.None);
         
         // Make spiders run away from player
         foreach (SpiderAI spider in spiders)
@@ -249,3 +249,5 @@ public class PowerUp : MonoBehaviour
         }
     }
 }
+
+

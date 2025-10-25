@@ -23,16 +23,27 @@ public class BeautifulMenuSystem : MonoBehaviour
     
     private bool isPaused = false;
     private GameManager gameManager;
-    private AudioManager audioManager;
+    private GameInitializer gameInitializer;
     
     void Start()
     {
+        // Wait for GameInitializer
+        gameInitializer = GameInitializer.Instance;
+        
         CreateBeautifulCanvas();
         CreateAllMenus();
-        ShowStartScreen();
         
-        gameManager = FindObjectOfType<GameManager>();
-        audioManager = AudioManager.Instance;
+        // Only show start screen if we're in menu mode
+        if (gameInitializer != null && gameInitializer.HasMenu())
+        {
+            ShowStartScreen();
+        }
+        else
+        {
+            HideAllScreens();
+        }
+        
+        gameManager = FindFirstObjectByType<GameManager>();
         
         Debug.Log("✨ Beautiful Menu System loaded!");
     }
@@ -64,7 +75,7 @@ public class BeautifulMenuSystem : MonoBehaviour
         canvasGO.AddComponent<GraphicRaycaster>(); // IMPORTANT for clicking!
         
         // Ensure EventSystem exists
-        if (FindObjectOfType<UnityEngine.EventSystems.EventSystem>() == null)
+        if (FindFirstObjectByType<UnityEngine.EventSystems.EventSystem>() == null)
         {
             GameObject eventSystem = new GameObject("EventSystem");
             eventSystem.AddComponent<UnityEngine.EventSystems.EventSystem>();
@@ -659,7 +670,7 @@ public class BeautifulMenuSystem : MonoBehaviour
         Time.timeScale = 0f;
         
         // Hide gameplay UI (RealisticUISystem handles this automatically)
-        RealisticUISystem realisticUI = FindObjectOfType<RealisticUISystem>();
+        RealisticUISystem realisticUI = FindFirstObjectByType<RealisticUISystem>();
         if (realisticUI != null)
         {
             realisticUI.gameObject.SetActive(false);
@@ -668,24 +679,50 @@ public class BeautifulMenuSystem : MonoBehaviour
     
     public void StartGame()
     {
+        Debug.Log("🎮 StartGame() called in BeautifulMenuSystem");
+        
         HideAllScreens();
-        Time.timeScale = 1f;
         isPaused = false;
         
-        // Show gameplay UI (RealisticUISystem handles this automatically)
-        RealisticUISystem realisticUI = FindObjectOfType<RealisticUISystem>();
-        if (realisticUI != null)
+        // Notify GameInitializer to start the game properly
+        if (gameInitializer != null)
         {
-            realisticUI.gameObject.SetActive(true);
+            gameInitializer.OnGameStart();
         }
+        else
+        {
+            // Fallback if no GameInitializer
+            Time.timeScale = 1f;
+            
+            // Show gameplay UI
+            RealisticUISystem realisticUI = FindFirstObjectByType<RealisticUISystem>();
+            if (realisticUI != null)
+            {
+                realisticUI.gameObject.SetActive(true);
+            }
+        }
+        
+        Debug.Log("✅ Game start initiated!");
     }
     
     public void PauseGame()
     {
+        // Don't allow pause if game hasn't started yet
+        if (gameInitializer != null && !gameInitializer.IsGameStarted())
+        {
+            Debug.Log("Cannot pause - game not started yet");
+            return;
+        }
+        
         pauseScreen.SetActive(true);
         StartCoroutine(FadeIn(pauseScreen));
         Time.timeScale = 0f;
         isPaused = true;
+        
+        if (gameInitializer != null)
+        {
+            gameInitializer.OnGamePause();
+        }
     }
     
     public void ResumeGame()
@@ -693,12 +730,26 @@ public class BeautifulMenuSystem : MonoBehaviour
         pauseScreen.SetActive(false);
         Time.timeScale = 1f;
         isPaused = false;
+        
+        if (gameInitializer != null)
+        {
+            gameInitializer.OnGameResume();
+        }
     }
     
     public void RestartGame()
     {
-        Time.timeScale = 1f;
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        Debug.Log("🔄 Restart requested from menu");
+        
+        if (gameInitializer != null)
+        {
+            gameInitializer.RestartGame();
+        }
+        else
+        {
+            Time.timeScale = 1f;
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        }
     }
     
     public void GoToMainMenu()
@@ -759,13 +810,10 @@ public class BeautifulMenuSystem : MonoBehaviour
     
     public void NextLevel()
     {
-        LevelManager levelManager = FindObjectOfType<LevelManager>();
-        if (levelManager != null)
-        {
-            levelManager.AdvanceToNextLevel();
-        }
+        // Restart the current scene (since we don't have multiple levels)
         HideAllScreens();
         Time.timeScale = 1f;
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
     
     public void QuitGame()
@@ -778,19 +826,19 @@ public class BeautifulMenuSystem : MonoBehaviour
     
     void SetMasterVolume(float value)
     {
-        if (audioManager != null) audioManager.SetMasterVolume(value);
+        // Audio system removed - volume settings saved for future use
         PlayerPrefs.SetFloat("MasterVolume", value);
     }
     
     void SetMusicVolume(float value)
     {
-        if (audioManager != null) audioManager.SetMusicVolume(value);
+        // Audio system removed - volume settings saved for future use
         PlayerPrefs.SetFloat("MusicVolume", value);
     }
     
     void SetSFXVolume(float value)
     {
-        if (audioManager != null) audioManager.SetSFXVolume(value);
+        // Audio system removed - volume settings saved for future use
         PlayerPrefs.SetFloat("SFXVolume", value);
     }
     
@@ -896,4 +944,5 @@ public class UIButtonHover : MonoBehaviour
         rt.localScale = Vector3.Lerp(rt.localScale, originalScale, Time.unscaledDeltaTime * 5f);
     }
 }
+
 

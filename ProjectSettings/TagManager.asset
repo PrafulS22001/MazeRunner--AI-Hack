@@ -4,6 +4,11 @@
 TagManager:
   serializedVersion: 3
   tags:
+  - PowerUp
+  - Bush
+  - Tree
+  - Spider
+  - Exit
   - Wall
   layers:
   - Default

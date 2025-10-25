@@ -38,7 +38,7 @@ public class RealisticUISystem : MonoBehaviour
     {
         player = GameObject.FindGameObjectWithTag("Player")?.transform;
         playerHealth = player?.GetComponent<HealthSystem>();
-        gameManager = FindObjectOfType<GameManager>();
+        gameManager = FindFirstObjectByType<GameManager>();
         
         CreateRealisticUI();
         StartCoroutine(UpdateDangerLevel());
@@ -363,18 +363,21 @@ public class RealisticUISystem : MonoBehaviour
     
     void UpdateStealthStatus()
     {
-        // Check for nearby enemies
-        AdvancedAISystem[] enemies = FindObjectsOfType<AdvancedAISystem>();
+        // Check for nearby enemies (using SpiderAI)
+        SpiderAI[] enemies = FindObjectsByType<SpiderAI>(FindObjectsSortMode.None);
         nearbyEnemies = 0;
         bool detected = false;
         
-        foreach (AdvancedAISystem enemy in enemies)
+        foreach (SpiderAI enemy in enemies)
         {
+            if (enemy == null) continue;
+            
             float distance = Vector2.Distance(player.position, enemy.transform.position);
             if (distance < 5f)
             {
                 nearbyEnemies++;
-                if (enemy.currentState == AdvancedAISystem.AIState.Chase)
+                // Spider is chasing if within chase radius (8 units)
+                if (distance <= 8f)
                 {
                     detected = true;
                 }
@@ -478,4 +481,6 @@ public class DangerVignette : MonoBehaviour
         }
     }
 }
+
+
 

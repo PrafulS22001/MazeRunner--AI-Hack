@@ -32,6 +32,26 @@ public class MazeGenerator : MonoBehaviour
 
     void Start()
     {
+        // Check if GameInitializer exists
+        GameInitializer gameInit = GameInitializer.Instance;
+        
+        if (gameInit != null && !gameInit.IsGameStarted())
+        {
+            // Game hasn't started yet (menu mode), wait before generating
+            Debug.Log("📦 MazeGenerator waiting for game to start...");
+            Invoke("GenerateMazeWhenReady", 0.5f);
+        }
+        else
+        {
+            // No GameInitializer or game already started
+            Debug.Log("Generating maze with spiders...");
+            GenerateCompleteMaze();
+            Debug.Log("Maze ready with spider enemies!");
+        }
+    }
+    
+    void GenerateMazeWhenReady()
+    {
         Debug.Log("Generating maze with spiders...");
         GenerateCompleteMaze();
         Debug.Log("Maze ready with spider enemies!");
@@ -106,12 +126,12 @@ public class MazeGenerator : MonoBehaviour
         // Create boundaries
         CreateBoundaries();
 
-        // Create random exit far from entrance
-        CreateRandomExit();
-
-        // Build all visual elements
+        // Build all visual elements FIRST
         BuildAllWalls();
         BuildGladeWalls();
+
+        // THEN create exit AFTER walls (so it won't be destroyed)
+        CreateRandomExit();
 
         // SPAWN SPIDERS
         SpawnSpidersInMaze();
@@ -281,31 +301,56 @@ public class MazeGenerator : MonoBehaviour
         // Find closest edge
         int minDist = Mathf.Min(distToLeft, distToRight, distToBottom, distToTop);
 
+        Debug.Log($"📍 Creating exit near path at ({pathX}, {pathY})");
+        
+        // FIXED: Create exit AT edge, with only a small gap (3-5 cells), not a huge corridor!
         if (minDist == distToLeft)
         {
-            mazeGrid[0, pathY] = 0;
-            CreateExitMarker(0, pathY, Color.green);
+            // Create SHORT path to left edge (just 3-5 cells)
+            int pathLength = Mathf.Min(5, pathX);
+            for (int i = 0; i <= pathLength; i++)
+            {
+                mazeGrid[pathX - i, pathY] = 0;
+            }
+            CreateExitMarker(Mathf.Max(0, pathX - pathLength), pathY, Color.green);
         }
         else if (minDist == distToRight)
         {
-            mazeGrid[mazeWidth - 1, pathY] = 0;
-            CreateExitMarker(mazeWidth - 1, pathY, Color.green);
+            // Create SHORT path to right edge (just 3-5 cells)
+            int pathLength = Mathf.Min(5, mazeWidth - 1 - pathX);
+            for (int i = 0; i <= pathLength; i++)
+            {
+                mazeGrid[pathX + i, pathY] = 0;
+            }
+            CreateExitMarker(Mathf.Min(mazeWidth - 1, pathX + pathLength), pathY, Color.green);
         }
         else if (minDist == distToBottom)
         {
-            mazeGrid[pathX, 0] = 0;
-            CreateExitMarker(pathX, 0, Color.green);
+            // Create SHORT path to bottom edge (just 3-5 cells)
+            int pathLength = Mathf.Min(5, pathY);
+            for (int i = 0; i <= pathLength; i++)
+            {
+                mazeGrid[pathX, pathY - i] = 0;
+            }
+            CreateExitMarker(pathX, Mathf.Max(0, pathY - pathLength), Color.green);
         }
         else
         {
-            mazeGrid[pathX, mazeHeight - 1] = 0;
-            CreateExitMarker(pathX, mazeHeight - 1, Color.green);
+            // Create SHORT path to top edge (just 3-5 cells)
+            int pathLength = Mathf.Min(5, mazeHeight - 1 - pathY);
+            for (int i = 0; i <= pathLength; i++)
+            {
+                mazeGrid[pathX, pathY + i] = 0;
+            }
+            CreateExitMarker(pathX, Mathf.Min(mazeHeight - 1, pathY + pathLength), Color.green);
         }
     }
 
     void CreateEmergencyExit()
     {
-        // Create exit anywhere as last resort
+        Debug.LogWarning("⚠️ Using EMERGENCY exit (no suitable path found)");
+        
+        // Create exit anywhere as last resort - but only a SHORT path!
         for (int x = 1; x < mazeWidth - 1; x++)
         {
             for (int y = 1; y < mazeHeight - 1; y++)
@@ -314,24 +359,50 @@ public class MazeGenerator : MonoBehaviour
                 {
                     if (x < mazeWidth / 2)
                     {
-                        mazeGrid[0, y] = 0;
-                        CreateExitMarker(0, y, Color.red);
+                        // Create SHORT clear path to left edge (max 5 cells)
+                        int pathLength = Mathf.Min(5, x);
+                        for (int i = 0; i <= pathLength; i++)
+                        {
+                            mazeGrid[x - i, y] = 0;
+                        }
+                        CreateExitMarker(Mathf.Max(0, x - pathLength), y, Color.red);
                     }
                     else
                     {
-                        mazeGrid[mazeWidth - 1, y] = 0;
-                        CreateExitMarker(mazeWidth - 1, y, Color.red);
+                        // Create SHORT clear path to right edge (max 5 cells)
+                        int pathLength = Mathf.Min(5, mazeWidth - 1 - x);
+                        for (int i = 0; i <= pathLength; i++)
+                        {
+                            mazeGrid[x + i, y] = 0;
+                        }
+                        CreateExitMarker(Mathf.Min(mazeWidth - 1, x + pathLength), y, Color.red);
                     }
                     return;
                 }
             }
         }
+        
+        Debug.LogError("❌ CRITICAL: Could not create ANY exit!");
     }
 
     void CreateExitMarker(int gridX, int gridY, Color color)
     {
         Vector2 exitPos = GridToWorldPosition(gridX, gridY);
+        
+        // FIRST: Remove any wall that might be at this position
+        GameObject[] walls = GameObject.FindGameObjectsWithTag("Wall");
+        foreach (GameObject wall in walls)
+        {
+            if (Vector2.Distance(wall.transform.position, exitPos) < 0.5f)
+            {
+                Destroy(wall);
+                Debug.Log($"   🗑️ Removed wall at exit position");
+            }
+        }
+        
+        // NOW: Create the exit marker
         GameObject exit = Instantiate(wallPrefab, exitPos, Quaternion.identity);
+        exit.name = "EXIT_MARKER"; // Special name so it won't be confused with walls
 
         // Setup as exit trigger instead of wall
         try
@@ -344,7 +415,7 @@ public class MazeGenerator : MonoBehaviour
             Debug.LogWarning("Exit tag not defined. Exit will work without tag.");
         }
         exit.GetComponent<SpriteRenderer>().color = color;
-        exit.transform.localScale = Vector3.one * 1.3f;
+        exit.transform.localScale = Vector3.one * 1.5f; // Make it bigger and visible!
         
         // Remove wall collider and add trigger
         BoxCollider2D wallCollider = exit.GetComponent<BoxCollider2D>();
@@ -359,7 +430,8 @@ public class MazeGenerator : MonoBehaviour
             exit.AddComponent<ExitTrigger>();
         }
         
-        Debug.Log($"Exit created at grid ({gridX}, {gridY})");
+        Debug.Log($"✅ EXIT created at grid ({gridX}, {gridY}) -> World ({exitPos.x:F1}, {exitPos.y:F1})");
+        Debug.Log($"   🎯 Exit Color: {color} | Scale: 1.5x | Trigger: ON");
     }
 
     void BuildGladeWalls()
@@ -614,8 +686,18 @@ public class MazeGenerator : MonoBehaviour
             new Vector2(gridX, gridY),
             new Vector2(gladeCenterX, gladeCenterY)
         );
-
-        return distanceToCenter > 2f; // Minimum distance from center
+        
+        // Don't place trees near the entrance (right side of glade)
+        int entranceX = (mazeWidth + gladeSize) / 2;
+        int entranceY = mazeHeight / 2;
+        
+        float distanceToEntrance = Vector2.Distance(
+            new Vector2(gridX, gridY),
+            new Vector2(entranceX, entranceY)
+        );
+        
+        // Must be far from both center AND entrance
+        return distanceToCenter > 2f && distanceToEntrance > 3f;
     }
 
     void AddBushesToMaze()
@@ -776,14 +858,14 @@ public class MazeGenerator : MonoBehaviour
         }
 
         // Clear spiders
-        SpiderAI[] spiders = FindObjectsOfType<SpiderAI>();
+        SpiderAI[] spiders = FindObjectsByType<SpiderAI>(FindObjectsSortMode.None);
         foreach (SpiderAI spider in spiders)
         {
             Destroy(spider.gameObject);
         }
 
         // Clear environment (bushes)
-        BushScript[] bushes = FindObjectsOfType<BushScript>();
+        BushScript[] bushes = FindObjectsByType<BushScript>(FindObjectsSortMode.None);
         foreach (BushScript bush in bushes)
         {
             Destroy(bush.gameObject);
@@ -814,7 +896,7 @@ public class MazeGenerator : MonoBehaviour
         }
         
         // Clear any GameObject with "Tree" in name (fallback)
-        GameObject[] allObjects = FindObjectsOfType<GameObject>();
+        GameObject[] allObjects = FindObjectsByType<GameObject>(FindObjectsSortMode.None);
         foreach (GameObject obj in allObjects)
         {
             if (obj.name.Contains("Tree") && !obj.name.Contains("TreeScript") && !obj.name.Contains("MazeGenerator"))
@@ -824,7 +906,7 @@ public class MazeGenerator : MonoBehaviour
         }
         
         // Clear power-ups
-        PowerUp[] powerUps = FindObjectsOfType<PowerUp>();
+        PowerUp[] powerUps = FindObjectsByType<PowerUp>(FindObjectsSortMode.None);
         foreach (PowerUp powerUp in powerUps)
         {
             Destroy(powerUp.gameObject);
@@ -842,7 +924,7 @@ public class MazeGenerator : MonoBehaviour
         catch
         {
             // Exit tag doesn't exist, find exits another way
-            ExitTrigger[] exitTriggers = FindObjectsOfType<ExitTrigger>();
+            ExitTrigger[] exitTriggers = FindObjectsByType<ExitTrigger>(FindObjectsSortMode.None);
             foreach (ExitTrigger exitTrigger in exitTriggers)
             {
                 Destroy(exitTrigger.gameObject);
@@ -853,7 +935,7 @@ public class MazeGenerator : MonoBehaviour
         if (enableFogOfWar)
         {
             // Find ClashStyleFogSystem (new system)
-            ClashStyleFogSystem newFog = FindObjectOfType<ClashStyleFogSystem>();
+            ClashStyleFogSystem newFog = FindFirstObjectByType<ClashStyleFogSystem>();
             if (newFog != null)
             {
                 // Recreate fog for the new maze
@@ -882,7 +964,7 @@ public class MazeGenerator : MonoBehaviour
     void RecreateFog()
     {
         // Recreate fog for the new maze layout
-        ClashStyleFogSystem fogSystem = FindObjectOfType<ClashStyleFogSystem>();
+        ClashStyleFogSystem fogSystem = FindFirstObjectByType<ClashStyleFogSystem>();
         if (fogSystem != null)
         {
             // Call Start() again to recreate fog
@@ -908,3 +990,4 @@ public class MazeGenerator : MonoBehaviour
         return new Vector2(worldX, worldY);
     }
 }
+
