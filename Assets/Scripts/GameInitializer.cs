@@ -17,6 +17,7 @@ public class GameInitializer : MonoBehaviour
     private ClashStyleFogSystem fogSystem;
     private GameManager gameManager;
     private RealisticUISystem realisticUI;
+    private AudioManager audioManager;
     
     [Header("Status")]
     public bool isInitialized = false;
@@ -80,12 +81,14 @@ public class GameInitializer : MonoBehaviour
         fogSystem = FindFirstObjectByType<ClashStyleFogSystem>();
         gameManager = FindFirstObjectByType<GameManager>();
         realisticUI = FindFirstObjectByType<RealisticUISystem>();
+        audioManager = FindFirstObjectByType<AudioManager>();
         
         Debug.Log($"Menu System: {(menuSystem != null ? "✅" : "❌")}");
         Debug.Log($"Maze Generator: {(mazeGenerator != null ? "✅" : "❌")}");
         Debug.Log($"Fog System: {(fogSystem != null ? "✅" : "❌")}");
         Debug.Log($"Game Manager: {(gameManager != null ? "✅" : "❌")}");
         Debug.Log($"Realistic UI: {(realisticUI != null ? "✅" : "❌")}");
+        Debug.Log($"Audio Manager: {(audioManager != null ? "✅" : "❌")}");
     }
     
     void InitializeMenuMode()

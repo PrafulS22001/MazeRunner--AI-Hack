@@ -3,13 +3,14 @@ using UnityEngine;
 /// <summary>
 /// INSTANT GAME STARTER - Bypasses menu and starts everything immediately
 /// This ensures ALL fixes work right away without needing to press START button
+/// DISABLE THIS if you want the menu to show!
 /// </summary>
 [DefaultExecutionOrder(-200)] // Run BEFORE GameInitializer
 public class InstantGameStarter : MonoBehaviour
 {
     [Header("Settings")]
-    [Tooltip("Force game to start immediately (skip menu)")]
-    public bool forceInstantStart = true;
+    [Tooltip("Force game to start immediately (skip menu) - UNCHECK to show menu!")]
+    public bool forceInstantStart = false;  // Changed to FALSE by default!
     
     [Tooltip("Show debug messages")]
     public bool showDebug = true;

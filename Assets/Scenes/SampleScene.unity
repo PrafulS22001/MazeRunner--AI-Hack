@@ -196,6 +196,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e601848f70dea7b46b990874d8bf8098, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpiderAndExitFixer
+  autoFixSpiders: 1
+  autoFixExit: 1
+  forceCreatePath: 0
 --- !u!4 &205507576
 Transform:
   m_ObjectHideFlags: 0
@@ -560,6 +563,7 @@ MonoBehaviour:
   checkMaze: 1
   enhancePlayer: 1
   enhancePowerUps: 1
+  forceSkipMenu: 0
   expectedTreePrefab: {fileID: 3817712437379833741, guid: a16d7af94ff86db4a94c17dbd59d2198, type: 3}
   expectedSpiderPrefab: {fileID: 6947770046040715828, guid: e05f0a8e915d4154884283cd5b4a86ce, type: 3}
   treesFound: 0
@@ -593,7 +597,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InstantGameStarter
-  forceInstantStart: 1
+  forceInstantStart: 0
   showDebug: 1
 --- !u!1 &859585655
 GameObject:

@@ -20,6 +20,10 @@ public class CompleteGameFixer : MonoBehaviour
     public bool enhancePlayer = true;
     public bool enhancePowerUps = true;
     
+    [Header("Menu Control")]
+    [Tooltip("Force skip menu on start (for testing) - UNCHECK to show menu!")]
+    public bool forceSkipMenu = false;  // New setting, disabled by default
+    
     [Header("Prefab References (Auto-Check)")]
     public GameObject expectedTreePrefab;
     public GameObject expectedSpiderPrefab;
@@ -38,8 +42,16 @@ public class CompleteGameFixer : MonoBehaviour
         Debug.Log("⚡ COMPLETE GAME FIXER - STARTING");
         Debug.Log("═══════════════════════════════════════════");
         
-        // FIRST: Force game to start if blocked by menu
-        ForceGameStart();
+        // Only force game start if explicitly enabled
+        if (forceSkipMenu)
+        {
+            Debug.Log("⚠️ Force Skip Menu is ENABLED - bypassing menu");
+            ForceGameStart();
+        }
+        else
+        {
+            Debug.Log("✅ Menu will show normally (Force Skip Menu is disabled)");
+        }
         
         // Add wall enhancement system if not present
         wallSystem = GetComponent<EnhancedWallSystem>();

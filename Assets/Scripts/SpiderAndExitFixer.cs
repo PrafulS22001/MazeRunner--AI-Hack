@@ -6,11 +6,34 @@ using UnityEngine;
 /// </summary>
 public class SpiderAndExitFixer : MonoBehaviour
 {
+    [Header("Auto-Fix Settings")]
+    [Tooltip("Automatically fix spiders on start")]
+    public bool autoFixSpiders = true;
+    
+    [Tooltip("Automatically fix exit on start")]
+    public bool autoFixExit = true;
+    
+    [Tooltip("WARNING: Creates a direct path to exit (for testing only!)")]
+    public bool forceCreatePath = false;  // Disabled by default!
+    
     void Start()
     {
-        Invoke("FixAllSpiders", 2f);   // Fix spiders after they spawn
-        Invoke("FixExitAccess", 3f);   // Fix exit after it's created
-        Invoke("ForceCreateExitPath", 4f);  // FORCE a path to exit
+        if (autoFixSpiders)
+        {
+            Invoke("FixAllSpiders", 2f);   // Fix spiders after they spawn
+        }
+        
+        if (autoFixExit)
+        {
+            Invoke("FixExitAccess", 3f);   // Fix exit after it's created
+        }
+        
+        // Only create path if explicitly enabled (for testing)
+        if (forceCreatePath)
+        {
+            Invoke("ForceCreateExitPath", 4f);  // FORCE a path to exit
+            Debug.LogWarning("⚠️ ForceCreatePath is ENABLED - Exit will be easy to reach (testing mode)");
+        }
     }
     
     void Update()

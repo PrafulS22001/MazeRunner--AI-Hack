@@ -826,20 +826,38 @@ public class BeautifulMenuSystem : MonoBehaviour
     
     void SetMasterVolume(float value)
     {
-        // Audio system removed - volume settings saved for future use
-        PlayerPrefs.SetFloat("MasterVolume", value);
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.SetMasterVolume(value);
+        }
+        else
+        {
+            PlayerPrefs.SetFloat("MasterVolume", value);
+        }
     }
     
     void SetMusicVolume(float value)
     {
-        // Audio system removed - volume settings saved for future use
-        PlayerPrefs.SetFloat("MusicVolume", value);
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.SetMusicVolume(value);
+        }
+        else
+        {
+            PlayerPrefs.SetFloat("MusicVolume", value);
+        }
     }
     
     void SetSFXVolume(float value)
     {
-        // Audio system removed - volume settings saved for future use
-        PlayerPrefs.SetFloat("SFXVolume", value);
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.SetSFXVolume(value);
+        }
+        else
+        {
+            PlayerPrefs.SetFloat("SFXVolume", value);
+        }
     }
     
     void SetFullscreen(bool isFullscreen)
